@@ -1,26 +1,31 @@
-$filePath = "./AgileWords.txt"
-if (!(Test-Path -Path $filePath)) {
-    Invoke-WebRequest "https://raw.githubusercontent.com/agilebits/crackme/master/doc/AgileWords.txt" -OutFile $filePath
+function New-Passphrase {
+param(
+    [Parameter(Mandatory=$false)]
+    [ValidateScript({ if ($_ -lt 2) { throw "WordCount must be at least 2" } return $true })]
+    [int]$WordCount = 2,
+    [switch]$NoNumber 
+)
+    $filePath = "./AgileWords.txt"
+    if (!(Test-Path -Path $filePath)) {
+        Invoke-WebRequest "https://raw.githubusercontent.com/agilebits/crackme/master/doc/AgileWords.txt" -OutFile $filePath
+    }
+
+    $words = Get-Content $filePath
+    $randomWords = $words | Get-Random -Count $WordCount
+    $randomWords = $randomWords | ForEach-Object { [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.ToTitleCase($_) }
+    if (!$NoNumber) {
+        $randomWord = $randomWords | Get-Random
+        $randomNumber = (Get-Random -Minimum 0 -Maximum 99).ToString().PadLeft(2, "0")
+        $randomNumberPosition = Get-Random -Minimum 0 -Maximum 1
+        if($randomNumberPosition){
+            $randomWords[$randomWords.IndexOf($randomWord)] = "$randomWord$randomNumber"
+        }else{
+            $randomWords[$randomWords.IndexOf($randomWord)] = "$randomNumber$randomWord"
+        }
+    }
+    $passphrase = $randomWords -join "-"
+    if($passphrase.Length -lt 15){
+        $passphrase = New-Passphrase
+    }
+    $passphrase
 }
-
-$wordList = Get-Content -Path $filePath
-$words = $wordList.Split("`n")
-$wordCount = $words.Count
-
-$randomIndex1 = Get-Random -Minimum 0 -Maximum ($wordCount-1)
-$randomIndex2 = Get-Random -Minimum 0 -Maximum ($wordCount-1)
-$randomIndexNum = Get-Random -Minimum 0 -Maximum 2
-
-$word1 = $words[$randomIndex1].Substring(0,1).ToUpper() + $words[$randomIndex1].Substring(1)
-$word2 = $words[$randomIndex2].Substring(0,1).ToUpper() + $words[$randomIndex2].Substring(1)
-
-$randomNum = Get-Random -Minimum 0 -Maximum 9
-
-switch ($randomIndexNum)
-{
-    0 {$word1 += $randomNum}
-    1 {$word2 += $randomNum}
-}
-
-$passphrase = $word1 + "-" + $word2
-Write-Output $passphrase
