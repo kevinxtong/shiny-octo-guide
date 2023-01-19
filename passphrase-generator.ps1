@@ -29,3 +29,19 @@ param(
     }
     $passphrase
 }
+
+function Show-PassphraseForm
+{
+    
+    $PopupTitle = "New-Passphrase"
+    $PopupMessage = "Press OK to reroll or CTRL + C to copy."
+    $PopUpTextField = (New-Passphrase)
+    Add-Type -AssemblyName Microsoft.VisualBasic
+    $input = [Microsoft.VisualBasic.Interaction]::InputBox($PopupMessage, $PopupTitle, $PopUpTextField)
+    if($input -ne ""){
+       Show-PassphraseForm
+    }
+}
+
+
+Show-PassphraseForm
