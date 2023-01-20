@@ -1,32 +1,67 @@
-function New-Passphrase {
-param(
-    [Parameter(Mandatory=$false)]
-    [ValidateScript({ if ($_ -lt 2) { throw "WordCount must be at least 2" } return $true })]
-    [int]$WordCount = 2,
-    [switch]$NoNumber 
-)
-    $filePath = "./AgileWords.txt"
-    if (!(Test-Path -Path $filePath)) {
-        Invoke-WebRequest "https://raw.githubusercontent.com/agilebits/crackme/master/doc/AgileWords.txt" -OutFile $filePath
+Function New-Passphrase {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false)]
+        [ValidateScript({ if ($_ -lt 2) { throw "WordCount must be at least 2" } return $true })]
+        [int]$WordCount = 2,
+        [switch]$NoNumber,
+        [switch]$NoCapitalization
+    )
+
+    # File path for word list
+    $wordListFilePath = "./AgileWords.txt"
+
+    # Download word list if it doesn't exist
+    if (!(Test-Path -Path $wordListFilePath)) {
+        Invoke-WebRequest "https://raw.githubusercontent.com/agilebits/crackme/master/doc/AgileWords.txt" -OutFile $wordListFilePath
     }
 
-    $words = Get-Content $filePath
+    # Get words from file
+    $words = Get-Content $wordListFilePath
+
+    # Select random words
     $randomWords = $words | Get-Random -Count $WordCount
-    $randomWords = $randomWords | ForEach-Object { [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.ToTitleCase($_) }
+
+    # Capitalize words if not disabled
+    if (!$NoCapitalization) {
+        $randomWords = $randomWords | ForEach-Object { [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.ToTitleCase($_) }
+    }
+
+    # Add random number if not disabled
     if (!$NoNumber) {
+        # Select random word from list
         $randomWord = $randomWords | Get-Random
+        $randomIndex = 0
+        $flag = $false
+        $randomWords | ForEach-Object -Process {
+            if ($_ -eq $randomWord -and !$flag) {
+                $randomIndex = $randomWords.IndexOf($_)
+                $flag = $true
+            }
+        }
         $randomNumber = (Get-Random -Minimum 0 -Maximum 99).ToString().PadLeft(2, "0")
-        $randomNumberPosition = Get-Random -Minimum 0 -Maximum 1
-        if($randomNumberPosition){
-            $randomWords[$randomWords.IndexOf($randomWord)] = "$randomWord$randomNumber"
-        }else{
-            $randomWords[$randomWords.IndexOf($randomWord)] = "$randomNumber$randomWord"
+        # Select random position for number
+        $randomNumberPosition = Get-Random -Minimum 0 -Maximum 2
+
+        # Append or prepend number to word
+        if($randomNumberPosition -eq 0){
+            $randomWords[$randomIndex] = "$randomNumber$randomWord"
+        }
+        elseif($randomNumberPosition -eq 1){
+            $randomWords[$randomIndex] = "$randomWord$randomNumber"
         }
     }
+
+    # Create passphrase
     $passphrase = $randomWords -join "-"
-    if($passphrase.Length -lt 16){
+
+    # Check if passphrase is long enough
+    if($passphrase.Length -lt 15){
+               # If passphrase is not long enough, generate new passphrase
         $passphrase = New-Passphrase
     }
+
+    # Return passphrase
     $passphrase
 }
 
