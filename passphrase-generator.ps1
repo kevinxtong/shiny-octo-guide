@@ -5,24 +5,21 @@ Function New-Passphrase {
         [ValidateScript({ if ($_ -lt 2) { throw "WordCount must be at least 2" } return $true })]
         [int]$WordCount = 2,
         [switch]$NoNumber,
-        [switch]$NoCapitalization
+        [switch]$NoCapitalization,
+        [string]$Separator = "-"
     )
 
-    # File path for word list
     $wordListFilePath = "./AgileWords.txt"
 
-    # Download word list if it doesn't exist
     if (!(Test-Path -Path $wordListFilePath)) {
         Invoke-WebRequest "https://raw.githubusercontent.com/agilebits/crackme/master/doc/AgileWords.txt" -OutFile $wordListFilePath
     }
 
-    # Get words from file
     $words = Get-Content $wordListFilePath
 
     # Select random words
     $randomWords = $words | Get-Random -Count $WordCount
 
-    # Capitalize words if not disabled
     if (!$NoCapitalization) {
         $randomWords = $randomWords | ForEach-Object { [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.ToTitleCase($_) }
     }
@@ -39,7 +36,7 @@ Function New-Passphrase {
                 $flag = $true
             }
         }
-        $randomNumber = (Get-Random -Minimum 0 -Maximum 99).ToString().PadLeft(2, "0")
+        $randomNumber = (Get-Random -Minimum 0 -Maximum 9).ToString()
         # Select random position for number
         $randomNumberPosition = Get-Random -Minimum 0 -Maximum 2
 
@@ -52,16 +49,14 @@ Function New-Passphrase {
         }
     }
 
-    # Create passphrase
-    $passphrase = $randomWords -join "-"
 
-    # Check if passphrase is long enough
+    $passphrase = $randomWords -join $separator
+
     if($passphrase.Length -lt 15){
-               # If passphrase is not long enough, generate new passphrase
+
         $passphrase = New-Passphrase
     }
 
-    # Return passphrase
     $passphrase
 }
 
